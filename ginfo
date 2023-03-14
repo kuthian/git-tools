@@ -1,0 +1,63 @@
+    bitbucket_url_begin="http://bitbucket:7990/projects"
+    
+    given_path="$1"
+    if [ -z "$given_path" ]; then
+        given_path="."
+    fi
+    
+    if [ ! -d "$given_path" ]; then
+        echo -e "Error: no such directory $given_path"
+        exit 1
+    fi
+    
+    git_path=$(command -v git)
+    
+    if [ -z "$git_path" ]; then
+        echo -e "Error: git is not installed"
+        exit 1
+    fi
+    
+    cd "$given_path"
+    
+    is_git_repo=$(git rev-parse --is-inside-work-tree 2> /dev/null)
+    
+    if [ "$is_git_repo" != "true" ]; then
+        echo -e "Error: not a git repository"
+        cd - 1> /dev/null
+        exit 1
+    fi
+    
+    # set the delimiter for the subsequent read command ...
+    # and then read in the repo URL (something like "ssh://git@bitbucket:7999/products/devview.git") and split it using the delimiter
+    IFS=":"
+    read -a repo_url <<< "$(git config --get remote.origin.url)"
+    
+    # and again...
+    IFS="."
+    read -a repo_url <<< "${repo_url[2]}"
+    
+    # and again...
+    IFS="/"
+    read -a repo_url <<< "${repo_url[0]}"
+    
+    if [ -z "$repo_url" ]; then
+        repo_url="<Parse Error>"
+    else
+        repo_url="$bitbucket_url_begin/${repo_url[1]}/repos/${repo_url[2]}/browse"
+    fi
+    
+    # for (( n=1; n < ${#repo_url[*]}; n++))
+    #do
+    #  echo "${repo_url[n]}"
+    #done
+    
+    echo "Path: $given_path"
+    echo "Branch: $(git branch --show-current)"
+    echo "Cloned URL: $(git config --get remote.origin.url)"
+    echo "Bitbucket URL: $repo_url"
+    echo "Last Changed Author: $(git log -n 1 --pretty=format:"%an")"
+    echo "Last Changed Rev: $(git log -n 1 --pretty=format:"%h")"
+    echo "Last Changed Date: $(git log -n 1 --pretty=format:"%ad")"
+    echo -e "Last Changed Msg: $(git log -n 1 --pretty=format:"%s")\n"
+    
+    cd - 1> /dev/null

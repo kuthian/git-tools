@@ -1,0 +1,2 @@
+#!/bin/bash
+ginfo "$@" | egrep -w 'ssh.+git' -o | tr -d '\n' | xclip -selection clipboard
